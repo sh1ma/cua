@@ -1154,6 +1154,7 @@ dependencies = [
  "flate2",
  "futures-util",
  "image",
+ "jsonschema",
  "libc",
  "pip-preview",
  "platform-linux",

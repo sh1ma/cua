@@ -48,13 +48,13 @@ fn def() -> &'static ToolDef {
             and ignored. Pass `include_screenshot:false` to skip the grab and get \
             the tree only — the cheap path when you're just re-indexing before an \
             element ax action.\n\n\
-            The mirror image: pass `include_accessibility_tree:false` to SKIP the \
+            The mirror image: pass `include_tree:false` to SKIP the \
             AX walk entirely (the expensive part, up to 20 s) and return just the \
             screenshot plus window metadata — `window_bounds`, `screenshot_scale`, \
             `screenshot_width`/`screenshot_height`, `app_name`, and `window_title` \
             — the capture-only path for rendering a live window preview / \
             picture-in-picture without paying for perception. Setting BOTH \
-            `include_accessibility_tree:false` and `include_screenshot:false` is an \
+            `include_tree:false` and `include_screenshot:false` is an \
             error (nothing to return). Optional `max_dimension` caps the returned \
             screenshot's long edge in pixels (aspect preserved) for a cheap \
             thumbnail.\n\n\
@@ -90,16 +90,15 @@ fn def() -> &'static ToolDef {
                 "window_id": { "type": "integer", "description": "Target window ID from list_windows." },
                 "query": { "type": "string", "description": "Case-insensitive filter for tree_markdown and structured elements. Returns matching actionable rows plus their actionable ancestors without renumbering element_index values." },
                 "capture_mode": cua_driver_core::capture_mode::capture_mode_schema(),
-                "include_accessibility_tree": {
-                    "type": "boolean",
-                    "description": "Default true — walk the AX tree and return `elements` + `tree_markdown` alongside the screenshot. Set false to SKIP the AX walk entirely (the expensive part, up to 20 s) and return just the screenshot plus window metadata (bounds, scale, app_name, window_title) — the capture-only path for rendering a live window preview / picture-in-picture. Mirrors include_screenshot. Setting BOTH include_accessibility_tree:false AND include_screenshot:false is an error (nothing to return)."
-                },
+                "include_tree": cua_driver_core::window_state_options::include_tree_schema(),
+                "include_accessibility_tree": cua_driver_core::window_state_options::legacy_include_accessibility_tree_schema(),
                 "include_screenshot": {
                     "type": "boolean",
                     "description": "Default true — returns a grounding screenshot alongside the tree. Set false to skip the grab and return the tree only (the cheap path when you're just re-indexing before an element ax action; saves the image tokens + screen-grab latency). screenshot_out_file still forces a capture to disk."
                 },
                 "screenshot_out_file": {
                     "type": "string",
+                    "minLength": 1,
                     "description": "When set, write the PNG to this file path (~ expanded) instead of embedding base64 in the response. The structured output will contain screenshot_file_path instead."
                 },
                 "max_elements": {
@@ -182,6 +181,11 @@ impl Tool for GetWindowStateTool {
             Ok(v) => v,
             Err(e) => return e,
         };
+        let selection =
+            match cua_driver_core::window_state_options::WindowStateSelection::from_args(&args) {
+                Ok(selection) => selection,
+                Err(error) => return error,
+            };
 
         // Issue #2237: pre-flight the requested window against WindowServer
         // BEFORE the (up to 20 s) AX walk. An id that no window carries, or
@@ -212,15 +216,18 @@ impl Tool for GetWindowStateTool {
         }
 
         let query = args.opt_str("query");
-        let screenshot_out_file = args.opt_str("screenshot_out_file").map(|s| {
-            // Expand ~ prefix.
-            if let Some(relative) = s.strip_prefix("~/") {
-                let home = std::env::var("HOME").unwrap_or_default();
-                format!("{home}/{relative}")
-            } else {
-                s
-            }
-        });
+        let screenshot_out_file = args
+            .opt_str("screenshot_out_file")
+            .filter(|path| !path.is_empty())
+            .map(|s| {
+                // Expand ~ prefix.
+                if let Some(relative) = s.strip_prefix("~/") {
+                    let home = std::env::var("HOME").unwrap_or_default();
+                    format!("{home}/{relative}")
+                } else {
+                    s
+                }
+            });
         // Effective config resolves call-arg > session-override > global. The
         // daemon injects `_session_id` for named MCP sessions; absent => global.
         let session_id = args.opt_str("_session_id");
@@ -242,25 +249,14 @@ impl Tool for GetWindowStateTool {
         // skip the grab and return the tree only — the cheap path when you're
         // just re-indexing before an element ax action. `screenshot_out_file`
         // still forces a capture (an explicit "write the frame to disk").
-        let include_screenshot = args.get("include_screenshot").and_then(|v| v.as_bool());
-        let should_capture = include_screenshot != Some(false) || screenshot_out_file.is_some();
+        let should_capture = selection.include_screenshot;
         // `include_accessibility_tree` (default true) is the mirror image of
         // `include_screenshot`: set false to SKIP the AX walk (the expensive
         // part) and return just the screenshot + window metadata — the
         // capture-only / preview path. With BOTH the tree and the screenshot
         // opted out there is nothing to return, so refuse rather than emit an
         // empty payload.
-        let want_tree = args
-            .get("include_accessibility_tree")
-            .and_then(|v| v.as_bool())
-            != Some(false);
-        if !want_tree && !should_capture {
-            return ToolResult::error(
-                "Nothing to return: both include_accessibility_tree:false and \
-                 include_screenshot:false. Set at least one to true, or pass \
-                 screenshot_out_file to force a capture.",
-            );
-        }
+        let want_tree = selection.include_tree;
         // Optional per-call cap on the returned screenshot's long edge, folded
         // with the session/global ceiling below (the tighter wins).
         let max_dimension = args
@@ -290,7 +286,7 @@ impl Tool for GetWindowStateTool {
             .unwrap_or(crate::ax::tree::DEFAULT_MAX_DEPTH);
 
         // Walk the AX tree unless the caller opted out via
-        // `include_accessibility_tree:false` (the capture-only / preview path,
+        // `include_tree:false` (the capture-only / preview path,
         // which skips the expensive walk and returns screenshot + metadata).
         let tree_result = if want_tree {
             let q = query.clone();
@@ -585,6 +581,7 @@ impl Tool for GetWindowStateTool {
         let mut structured = serde_json::json!({
             "window_id": window_id,
             "pid": pid,
+            "tree_included": want_tree,
             "element_count": element_count,
             "total_element_count": element_count,
             "returned_element_count": filtered_element_count,
@@ -596,7 +593,22 @@ impl Tool for GetWindowStateTool {
                 Issue #22865: use `max_elements` / `max_depth` to bound the \
                 AX walk on apps with very large trees."
         });
-        if query.is_some() {
+        if !want_tree {
+            if let Some(object) = structured.as_object_mut() {
+                for key in [
+                    "element_count",
+                    "total_element_count",
+                    "returned_element_count",
+                    "elements_complete",
+                    "tree_markdown",
+                    "elements",
+                    "_note",
+                ] {
+                    object.remove(key);
+                }
+            }
+        }
+        if want_tree && query.is_some() {
             structured["filtered_element_count"] = serde_json::json!(filtered_element_count);
         }
         // Surface 6: an opaque snapshot identifier consumers can log
@@ -1069,13 +1081,18 @@ mod window_scope_contract_tests {
     }
 
     /// The capture-only fold-in: get_window_state advertises the new
-    /// `include_accessibility_tree` / `max_dimension` controls, keeps pid +
+    /// canonical `include_tree`, its compatibility alias, and `max_dimension`
+    /// controls, keeps pid +
     /// window_id required (schema not loosened), and documents the degenerate
     /// both-false case in its description.
     #[test]
     fn schema_advertises_capture_only_controls() {
         let d = def();
         let props = &d.input_schema["properties"];
+        assert!(
+            props.get("include_tree").is_some(),
+            "schema must advertise include_tree"
+        );
         assert!(
             props.get("include_accessibility_tree").is_some(),
             "schema must advertise include_accessibility_tree"
@@ -1095,7 +1112,7 @@ mod window_scope_contract_tests {
             "pid and window_id must stay required: {required:?}"
         );
         assert!(
-            d.description.contains("include_accessibility_tree:false")
+            d.description.contains("include_tree:false")
                 && d.description.contains("include_screenshot:false"),
             "description must document the both-false error"
         );

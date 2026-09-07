@@ -516,6 +516,10 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_cua_driver_sdk_checksum_constructor_cuadriver_create_with_client_kind() != 3630:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_act_and_observe() != 14724:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_batch_actions() != 11410:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_call_tool() != 24493:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_click() != 56077:
@@ -583,6 +587,10 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_type_text() != 25156:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_cua_driver_sdk_checksum_method_cuadriver_verify_state() != 26193:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_act_and_observe() != 44874:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_batch_actions() != 35901:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_call_tool() != 52859:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1114,6 +1122,16 @@ _UniffiLib.uniffi_cua_driver_sdk_fn_constructor_cuadriver_create_with_client_kin
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_cua_driver_sdk_fn_constructor_cuadriver_create_with_client_kind.restype = ctypes.c_uint64
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_act_and_observe.argtypes = (
+    ctypes.c_uint64,
+    cua_driver._native_contract._UniffiRustBuffer,
+)
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_act_and_observe.restype = ctypes.c_uint64
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_batch_actions.argtypes = (
+    ctypes.c_uint64,
+    cua_driver._native_contract._UniffiRustBuffer,
+)
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_batch_actions.restype = ctypes.c_uint64
 _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_call_tool.argtypes = (
     ctypes.c_uint64,
     _UniffiRustBuffer,
@@ -1281,6 +1299,16 @@ _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_verify_state.argtypes = (
     cua_driver._native_contract._UniffiRustBuffer,
 )
 _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_verify_state.restype = ctypes.c_uint64
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_act_and_observe.argtypes = (
+    ctypes.c_uint64,
+    cua_driver._native_contract._UniffiRustBuffer,
+)
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_act_and_observe.restype = ctypes.c_uint64
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_batch_actions.argtypes = (
+    ctypes.c_uint64,
+    cua_driver._native_contract._UniffiRustBuffer,
+)
+_UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_batch_actions.restype = ctypes.c_uint64
 _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_call_tool.argtypes = (
     ctypes.c_uint64,
     _UniffiRustBuffer,
@@ -1523,6 +1551,12 @@ _UniffiLib.uniffi_cua_driver_sdk_checksum_constructor_cuadriver_create_private_w
 _UniffiLib.uniffi_cua_driver_sdk_checksum_constructor_cuadriver_create_with_client_kind.argtypes = (
 )
 _UniffiLib.uniffi_cua_driver_sdk_checksum_constructor_cuadriver_create_with_client_kind.restype = ctypes.c_uint16
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_act_and_observe.argtypes = (
+)
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_act_and_observe.restype = ctypes.c_uint16
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_batch_actions.argtypes = (
+)
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_batch_actions.restype = ctypes.c_uint16
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_call_tool.argtypes = (
 )
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_call_tool.restype = ctypes.c_uint16
@@ -1625,6 +1659,12 @@ _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_type_text.restype = c
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_verify_state.argtypes = (
 )
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriver_verify_state.restype = ctypes.c_uint16
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_act_and_observe.argtypes = (
+)
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_act_and_observe.restype = ctypes.c_uint16
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_batch_actions.argtypes = (
+)
+_UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_batch_actions.restype = ctypes.c_uint16
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_call_tool.argtypes = (
 )
 _UniffiLib.uniffi_cua_driver_sdk_checksum_method_cuadriversession_call_tool.restype = ctypes.c_uint16
@@ -4257,8 +4297,16 @@ class _UniffiFfiConverterTypeSdkClientKind(_UniffiConverterRustBuffer):
 
 
 
+
+
+
+
 class CuaDriverProtocol(typing.Protocol):
 
+    async def act_and_observe(self, input: cua_driver._native_contract.ActAndObserveInput) -> ToolResult:
+        raise NotImplementedError
+    async def batch_actions(self, input: cua_driver._native_contract.BatchActionsInput) -> ToolResult:
+        raise NotImplementedError
     async def call_tool(self, name: str,arguments_json: str) -> ToolResult:
         """
         Generic protocol-adapter surface. Ordinary applications should prefer
@@ -4688,6 +4736,40 @@ class CuaDriver(CuaDriverProtocol):
         inst = cls.__new__(cls)
         inst._handle = handle
         return inst
+    async def act_and_observe(self, input: cua_driver._native_contract.ActAndObserveInput) -> ToolResult:
+
+        cua_driver._native_contract._UniffiFfiConverterTypeActAndObserveInput.check_lower(input)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            cua_driver._native_contract._UniffiFfiConverterTypeActAndObserveInput.lower(input),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypeToolResult.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeDriverError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_act_and_observe(*_uniffi_lowered_args),
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_poll_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_complete_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
+    async def batch_actions(self, input: cua_driver._native_contract.BatchActionsInput) -> ToolResult:
+
+        cua_driver._native_contract._UniffiFfiConverterTypeBatchActionsInput.check_lower(input)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            cua_driver._native_contract._UniffiFfiConverterTypeBatchActionsInput.lower(input),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypeToolResult.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeDriverError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriver_batch_actions(*_uniffi_lowered_args),
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_poll_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_complete_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
     async def call_tool(self, name: str,arguments_json: str) -> ToolResult:
         """
         Generic protocol-adapter surface. Ordinary applications should prefer
@@ -5291,6 +5373,10 @@ class _UniffiFfiConverterTypeCuaDriver:
 
 class CuaDriverSessionProtocol(typing.Protocol):
 
+    async def act_and_observe(self, input: cua_driver._native_contract.ActAndObserveInput) -> ToolResult:
+        raise NotImplementedError
+    async def batch_actions(self, input: cua_driver._native_contract.BatchActionsInput) -> ToolResult:
+        raise NotImplementedError
     async def call_tool(self, name: str,arguments_json: str) -> ToolResult:
         raise NotImplementedError
     async def click(self, input: cua_driver._native_contract.ClickInput) -> ToolResult:
@@ -5376,6 +5462,40 @@ class CuaDriverSession(CuaDriverSessionProtocol):
         inst = cls.__new__(cls)
         inst._handle = handle
         return inst
+    async def act_and_observe(self, input: cua_driver._native_contract.ActAndObserveInput) -> ToolResult:
+
+        cua_driver._native_contract._UniffiFfiConverterTypeActAndObserveInput.check_lower(input)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            cua_driver._native_contract._UniffiFfiConverterTypeActAndObserveInput.lower(input),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypeToolResult.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeDriverError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_act_and_observe(*_uniffi_lowered_args),
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_poll_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_complete_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
+    async def batch_actions(self, input: cua_driver._native_contract.BatchActionsInput) -> ToolResult:
+
+        cua_driver._native_contract._UniffiFfiConverterTypeBatchActionsInput.check_lower(input)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            cua_driver._native_contract._UniffiFfiConverterTypeBatchActionsInput.lower(input),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypeToolResult.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeDriverError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_cua_driver_sdk_fn_method_cuadriversession_batch_actions(*_uniffi_lowered_args),
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_poll_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_complete_rust_buffer,
+            _UniffiLib.ffi_cua_driver_sdk_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
     async def call_tool(self, name: str,arguments_json: str) -> ToolResult:
 
         _UniffiFfiConverterString.check_lower(name)

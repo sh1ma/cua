@@ -672,11 +672,11 @@ impl Tool for GetWindowStateTool {
                 the requested surface's identity, the truthful tree is returned without \
                 a screenshot and `screenshot_error.code` is \
                 `surface_identity_unproven`.\n\n\
-                The mirror image: pass `include_accessibility_tree:false` to SKIP \
+                The mirror image: pass `include_tree:false` to SKIP \
                 the AT-SPI walk entirely and return just the screenshot plus \
                 window metadata (window_bounds, app_name, window_title) — the \
                 capture-only path for a live window preview / picture-in-picture. \
-                Setting BOTH `include_accessibility_tree:false` and \
+                Setting BOTH `include_tree:false` and \
                 `include_screenshot:false` is an error. Optional `max_dimension` \
                 caps the returned screenshot's long edge in pixels for a cheap \
                 thumbnail.\n\n\
@@ -690,11 +690,11 @@ impl Tool for GetWindowStateTool {
                 "pid":{"type":"integer"},
                 "window_id":{"type":"integer","description":"Native window identifier from list_windows."},
                 "capture_mode": cua_driver_core::capture_mode::capture_mode_schema(),
-                "include_accessibility_tree":{"type":"boolean",
-                    "description":"Default true — walk the AT-SPI tree and return `elements` + `tree_markdown` alongside the screenshot. Set false to SKIP the AT-SPI walk entirely and return just the screenshot plus window metadata (window_bounds, app_name, window_title) — the capture-only path for a live window preview / picture-in-picture. Mirrors include_screenshot. Setting BOTH include_accessibility_tree:false AND include_screenshot:false is an error (nothing to return)."},
+                "include_tree": cua_driver_core::window_state_options::include_tree_schema(),
+                "include_accessibility_tree": cua_driver_core::window_state_options::legacy_include_accessibility_tree_schema(),
                 "include_screenshot":{"type":"boolean",
                     "description":"Default true — returns a grounding screenshot alongside the tree. Set false to skip the grab and return tree only (the cheap path for re-indexing before an element ax action)."},
-                "screenshot_out_file":{"type":"string",
+                "screenshot_out_file":{"type":"string","minLength":1,
                     "description":"When set, write the PNG to this file path (~ expanded) instead of embedding base64 in the response. The structured output carries screenshot_file_path instead."},
                 "query":{"type":"string","description":"Optional case-insensitive substring. Projects both tree_markdown and structured elements to matches plus ancestors while preserving original indices. Compare total_element_count with returned_element_count."},
                 "max_elements":{"type":"integer","minimum":1,"description":"Cap on total AT-SPI nodes walked. Omit for the default (5 000). Lower for huge web/Electron trees."},
@@ -715,6 +715,11 @@ impl Tool for GetWindowStateTool {
             Ok(v) => v,
             Err(e) => return e,
         };
+        let selection =
+            match cua_driver_core::window_state_options::WindowStateSelection::from_args(&args) {
+                Ok(selection) => selection,
+                Err(error) => return error,
+            };
         // Optional per-call cap on the returned screenshot's long edge, folded
         // with the configured ceiling below (the tighter wins).
         let max_dimension = args
@@ -737,24 +742,23 @@ impl Tool for GetWindowStateTool {
         // pair is the default; `include_screenshot:false` skips the grab and returns
         // tree only (the cheap re-index path before an element ax action). A
         // screenshot_out_file still forces a capture (to disk), regardless.
-        let include_screenshot = args.get("include_screenshot").and_then(|v| v.as_bool());
         // `include_accessibility_tree` (default true) mirrors include_screenshot:
         // set false to SKIP the AT-SPI walk and return just the screenshot +
         // window metadata (the capture-only / preview path).
-        let want_tree = args
-            .get("include_accessibility_tree")
-            .and_then(|v| v.as_bool())
-            != Some(false);
+        let want_tree = selection.include_tree;
         // screenshot_out_file: when set, write the PNG to disk and surface the
         // path instead of embedding base64 in the response. `~` expands.
-        let screenshot_out_file = args.opt_str("screenshot_out_file").map(|s| {
-            if let Some(rest) = s.strip_prefix("~/") {
-                let home = std::env::var("HOME").unwrap_or_default();
-                format!("{home}/{rest}")
-            } else {
-                s
-            }
-        });
+        let screenshot_out_file = args
+            .opt_str("screenshot_out_file")
+            .filter(|path| !path.is_empty())
+            .map(|s| {
+                if let Some(rest) = s.strip_prefix("~/") {
+                    let home = std::env::var("HOME").unwrap_or_default();
+                    format!("{home}/{rest}")
+                } else {
+                    s
+                }
+            });
         // Optional caps — when omitted, the AT-SPI walker uses its built-in
         // defaults (#22865).
         let max_elements = args
@@ -792,14 +796,7 @@ impl Tool for GetWindowStateTool {
         // cross-checks the (sometimes-lying) tree against the frame. An explicit
         // `include_screenshot:false` skips the grab; an unproven Wayland surface
         // returns the tree with a typed screenshot error instead of unrelated pixels.
-        let should_capture = include_screenshot != Some(false) || screenshot_out_file.is_some();
-        if !want_tree && !should_capture {
-            return ToolResult::error(
-                "Nothing to return: both include_accessibility_tree:false and \
-                 include_screenshot:false. Set at least one to true, or pass \
-                 screenshot_out_file to force a capture.",
-            );
-        }
+        let should_capture = selection.include_screenshot;
         let observation_only = args
             .get("_observation_only")
             .and_then(|value| value.as_bool())
@@ -809,7 +806,7 @@ impl Tool for GetWindowStateTool {
 
         let result = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
             // Skip the AT-SPI walk on the capture-only path
-            // (include_accessibility_tree:false).
+            // (include_tree:false).
             let tree_result = if want_tree {
                 Some(crate::atspi::walk_tree_bounded(
                     pid,
@@ -872,7 +869,11 @@ impl Tool for GetWindowStateTool {
         match result {
             Ok(Ok((tree_opt, shot_opt, bounds, screenshot_error))) => {
                 let mut content = Vec::new();
-                let mut structured = json!({ "window_id": xid, "pid": pid });
+                let mut structured = json!({
+                    "window_id": xid,
+                    "pid": pid,
+                    "tree_included": want_tree,
+                });
 
                 if let Some(tr) = tree_opt {
                     let source_trusted = tr.trusted;
@@ -1053,7 +1054,7 @@ impl Tool for GetWindowStateTool {
                     });
                 }
 
-                // The capture-only path (include_accessibility_tree:false) leaves
+                // The capture-only path (include_tree:false) leaves
                 // `content` empty when the screenshot was also unavailable — most
                 // often on Wayland, where per-window capture cannot prove surface
                 // identity. Return a structured error rather than a "successful"
@@ -1065,7 +1066,7 @@ impl Tool for GetWindowStateTool {
                     };
                     return ToolResult::error(format!(
                         "No content produced for window_id {xid}: the accessibility tree was \
-                         skipped (include_accessibility_tree:false){reason_note}."
+                         skipped (include_tree:false){reason_note}."
                     ))
                     .with_structured(structured);
                 }
@@ -9846,6 +9847,9 @@ pub fn build_registry_with_provider(
         r.protected_resource_ownership(),
     );
     cua_driver_core::browser::register_browser_tools(&browser_engine, &mut r);
+    r.register_desktop_composite_tools(std::sync::Arc::new(GetWindowStateTool {
+        state: state.clone(),
+    }));
     r.register_recording_tools();
     r.register_session_tools();
     r

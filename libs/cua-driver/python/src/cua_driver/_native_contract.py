@@ -754,6 +754,399 @@ _uniffi_check_contract_api_version(_UniffiLib)
 # Public interface members begin here.
 
 
+class _UniffiFfiConverterString:
+    @staticmethod
+    def check_lower(value):
+        if not isinstance(value, str):
+            raise TypeError("argument must be str, not {}".format(type(value).__name__))
+        return value
+
+    @staticmethod
+    def read(buf):
+        size = buf.read_i32()
+        if size < 0:
+            raise InternalError("Unexpected negative string length")
+        utf8_bytes = buf.read(size)
+        return utf8_bytes.decode("utf-8")
+
+    @staticmethod
+    def write(value, buf):
+        utf8_bytes = value.encode("utf-8")
+        buf.write_i32(len(utf8_bytes))
+        buf.write(utf8_bytes)
+
+    @staticmethod
+    def lift(buf):
+        with buf.consume_with_stream() as stream:
+            return stream.read(stream.remaining()).decode("utf-8")
+
+    @staticmethod
+    def lower(value):
+        with _UniffiRustBuffer.alloc_with_builder() as builder:
+            builder.write(value.encode("utf-8"))
+            return builder.finalize()
+
+@dataclass
+class ChildInvocation:
+    """
+    One registry child call. Language bindings carry `arguments_json` as a
+    string, while serde exposes the canonical wire field as an object named
+    `arguments`.
+"""
+    def __init__(self, *, tool:str, arguments_json:str):
+        self.tool = tool
+        self.arguments_json = arguments_json
+
+
+
+
+    def __str__(self):
+        return "ChildInvocation(tool={}, arguments_json={})".format(self.tool, self.arguments_json)
+    def __eq__(self, other):
+        if self.tool != other.tool:
+            return False
+        if self.arguments_json != other.arguments_json:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeChildInvocation(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return ChildInvocation(
+            tool=_UniffiFfiConverterString.read(buf),
+            arguments_json=_UniffiFfiConverterString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterString.check_lower(value.tool)
+        _UniffiFfiConverterString.check_lower(value.arguments_json)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterString.write(value.tool, buf)
+        _UniffiFfiConverterString.write(value.arguments_json, buf)
+
+class _UniffiFfiConverterInt64(_UniffiConverterPrimitiveInt):
+    CLASS_NAME = "i64"
+    VALUE_MIN = -2**63
+    VALUE_MAX = 2**63
+
+    @staticmethod
+    def read(buf):
+        return buf.read_i64()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_i64(value)
+
+class _UniffiFfiConverterUInt64(_UniffiConverterPrimitiveInt):
+    CLASS_NAME = "u64"
+    VALUE_MIN = 0
+    VALUE_MAX = 2**64
+
+    @staticmethod
+    def read(buf):
+        return buf.read_u64()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_u64(value)
+
+class _UniffiFfiConverterOptionalString(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiFfiConverterString.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiFfiConverterString.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiFfiConverterString.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+class _UniffiFfiConverterOptionalInt64(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiFfiConverterInt64.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiFfiConverterInt64.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiFfiConverterInt64.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+@dataclass
+class ActAndObserveInput:
+    def __init__(self, *, action:ChildInvocation, pid:int, window_id:int, screenshot_out_file:str, session:typing.Optional[str], timeout_ms:typing.Optional[int], poll_interval_ms:typing.Optional[int]):
+        self.action = action
+        self.pid = pid
+        self.window_id = window_id
+        self.screenshot_out_file = screenshot_out_file
+        self.session = session
+        self.timeout_ms = timeout_ms
+        self.poll_interval_ms = poll_interval_ms
+
+
+
+
+    def __str__(self):
+        return "ActAndObserveInput(action={}, pid={}, window_id={}, screenshot_out_file={}, session={}, timeout_ms={}, poll_interval_ms={})".format(self.action, self.pid, self.window_id, self.screenshot_out_file, self.session, self.timeout_ms, self.poll_interval_ms)
+    def __eq__(self, other):
+        if self.action != other.action:
+            return False
+        if self.pid != other.pid:
+            return False
+        if self.window_id != other.window_id:
+            return False
+        if self.screenshot_out_file != other.screenshot_out_file:
+            return False
+        if self.session != other.session:
+            return False
+        if self.timeout_ms != other.timeout_ms:
+            return False
+        if self.poll_interval_ms != other.poll_interval_ms:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeActAndObserveInput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return ActAndObserveInput(
+            action=_UniffiFfiConverterTypeChildInvocation.read(buf),
+            pid=_UniffiFfiConverterInt64.read(buf),
+            window_id=_UniffiFfiConverterUInt64.read(buf),
+            screenshot_out_file=_UniffiFfiConverterString.read(buf),
+            session=_UniffiFfiConverterOptionalString.read(buf),
+            timeout_ms=_UniffiFfiConverterOptionalInt64.read(buf),
+            poll_interval_ms=_UniffiFfiConverterOptionalInt64.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterTypeChildInvocation.check_lower(value.action)
+        _UniffiFfiConverterInt64.check_lower(value.pid)
+        _UniffiFfiConverterUInt64.check_lower(value.window_id)
+        _UniffiFfiConverterString.check_lower(value.screenshot_out_file)
+        _UniffiFfiConverterOptionalString.check_lower(value.session)
+        _UniffiFfiConverterOptionalInt64.check_lower(value.timeout_ms)
+        _UniffiFfiConverterOptionalInt64.check_lower(value.poll_interval_ms)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterTypeChildInvocation.write(value.action, buf)
+        _UniffiFfiConverterInt64.write(value.pid, buf)
+        _UniffiFfiConverterUInt64.write(value.window_id, buf)
+        _UniffiFfiConverterString.write(value.screenshot_out_file, buf)
+        _UniffiFfiConverterOptionalString.write(value.session, buf)
+        _UniffiFfiConverterOptionalInt64.write(value.timeout_ms, buf)
+        _UniffiFfiConverterOptionalInt64.write(value.poll_interval_ms, buf)
+
+class _UniffiFfiConverterBoolean:
+    @classmethod
+    def check_lower(cls, value):
+        return not not value
+
+    @classmethod
+    def lower(cls, value):
+        return 1 if value else 0
+
+    @staticmethod
+    def lift(value):
+        return value != 0
+
+    @classmethod
+    def read(cls, buf):
+        return cls.lift(buf.read_u8())
+
+    @classmethod
+    def write(cls, value, buf):
+        buf.write_u8(value)
+
+class _UniffiFfiConverterOptionalUInt64(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiFfiConverterUInt64.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiFfiConverterUInt64.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiFfiConverterUInt64.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+@dataclass
+class CompositeChildOutput:
+    def __init__(self, *, tool:str, success:bool, elapsed_ms:int, index:typing.Optional[int], effect:typing.Optional[str], error_code:typing.Optional[str]):
+        self.tool = tool
+        self.success = success
+        self.elapsed_ms = elapsed_ms
+        self.index = index
+        self.effect = effect
+        self.error_code = error_code
+
+
+
+
+    def __str__(self):
+        return "CompositeChildOutput(tool={}, success={}, elapsed_ms={}, index={}, effect={}, error_code={})".format(self.tool, self.success, self.elapsed_ms, self.index, self.effect, self.error_code)
+    def __eq__(self, other):
+        if self.tool != other.tool:
+            return False
+        if self.success != other.success:
+            return False
+        if self.elapsed_ms != other.elapsed_ms:
+            return False
+        if self.index != other.index:
+            return False
+        if self.effect != other.effect:
+            return False
+        if self.error_code != other.error_code:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeCompositeChildOutput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return CompositeChildOutput(
+            tool=_UniffiFfiConverterString.read(buf),
+            success=_UniffiFfiConverterBoolean.read(buf),
+            elapsed_ms=_UniffiFfiConverterUInt64.read(buf),
+            index=_UniffiFfiConverterOptionalUInt64.read(buf),
+            effect=_UniffiFfiConverterOptionalString.read(buf),
+            error_code=_UniffiFfiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterString.check_lower(value.tool)
+        _UniffiFfiConverterBoolean.check_lower(value.success)
+        _UniffiFfiConverterUInt64.check_lower(value.elapsed_ms)
+        _UniffiFfiConverterOptionalUInt64.check_lower(value.index)
+        _UniffiFfiConverterOptionalString.check_lower(value.effect)
+        _UniffiFfiConverterOptionalString.check_lower(value.error_code)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterString.write(value.tool, buf)
+        _UniffiFfiConverterBoolean.write(value.success, buf)
+        _UniffiFfiConverterUInt64.write(value.elapsed_ms, buf)
+        _UniffiFfiConverterOptionalUInt64.write(value.index, buf)
+        _UniffiFfiConverterOptionalString.write(value.effect, buf)
+        _UniffiFfiConverterOptionalString.write(value.error_code, buf)
+
+@dataclass
+class ActAndObserveOutput:
+    def __init__(self, *, changed:bool, timed_out:bool, polls:int, child:CompositeChildOutput, final_screenshot_path:str, action_elapsed_ms:int, observe_elapsed_ms:int, total_elapsed_ms:int):
+        self.changed = changed
+        self.timed_out = timed_out
+        self.polls = polls
+        self.child = child
+        self.final_screenshot_path = final_screenshot_path
+        self.action_elapsed_ms = action_elapsed_ms
+        self.observe_elapsed_ms = observe_elapsed_ms
+        self.total_elapsed_ms = total_elapsed_ms
+
+
+
+
+    def __str__(self):
+        return "ActAndObserveOutput(changed={}, timed_out={}, polls={}, child={}, final_screenshot_path={}, action_elapsed_ms={}, observe_elapsed_ms={}, total_elapsed_ms={})".format(self.changed, self.timed_out, self.polls, self.child, self.final_screenshot_path, self.action_elapsed_ms, self.observe_elapsed_ms, self.total_elapsed_ms)
+    def __eq__(self, other):
+        if self.changed != other.changed:
+            return False
+        if self.timed_out != other.timed_out:
+            return False
+        if self.polls != other.polls:
+            return False
+        if self.child != other.child:
+            return False
+        if self.final_screenshot_path != other.final_screenshot_path:
+            return False
+        if self.action_elapsed_ms != other.action_elapsed_ms:
+            return False
+        if self.observe_elapsed_ms != other.observe_elapsed_ms:
+            return False
+        if self.total_elapsed_ms != other.total_elapsed_ms:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeActAndObserveOutput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return ActAndObserveOutput(
+            changed=_UniffiFfiConverterBoolean.read(buf),
+            timed_out=_UniffiFfiConverterBoolean.read(buf),
+            polls=_UniffiFfiConverterUInt64.read(buf),
+            child=_UniffiFfiConverterTypeCompositeChildOutput.read(buf),
+            final_screenshot_path=_UniffiFfiConverterString.read(buf),
+            action_elapsed_ms=_UniffiFfiConverterUInt64.read(buf),
+            observe_elapsed_ms=_UniffiFfiConverterUInt64.read(buf),
+            total_elapsed_ms=_UniffiFfiConverterUInt64.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterBoolean.check_lower(value.changed)
+        _UniffiFfiConverterBoolean.check_lower(value.timed_out)
+        _UniffiFfiConverterUInt64.check_lower(value.polls)
+        _UniffiFfiConverterTypeCompositeChildOutput.check_lower(value.child)
+        _UniffiFfiConverterString.check_lower(value.final_screenshot_path)
+        _UniffiFfiConverterUInt64.check_lower(value.action_elapsed_ms)
+        _UniffiFfiConverterUInt64.check_lower(value.observe_elapsed_ms)
+        _UniffiFfiConverterUInt64.check_lower(value.total_elapsed_ms)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterBoolean.write(value.changed, buf)
+        _UniffiFfiConverterBoolean.write(value.timed_out, buf)
+        _UniffiFfiConverterUInt64.write(value.polls, buf)
+        _UniffiFfiConverterTypeCompositeChildOutput.write(value.child, buf)
+        _UniffiFfiConverterString.write(value.final_screenshot_path, buf)
+        _UniffiFfiConverterUInt64.write(value.action_elapsed_ms, buf)
+        _UniffiFfiConverterUInt64.write(value.observe_elapsed_ms, buf)
+        _UniffiFfiConverterUInt64.write(value.total_elapsed_ms, buf)
+
 
 
 
@@ -1398,6 +1791,148 @@ class _UniffiFfiConverterTypeActionResult(_UniffiConverterRustBuffer):
         _UniffiFfiConverterOptionalSequenceTypeActionEvidence.write(value.evidence, buf)
         _UniffiFfiConverterOptionalTypeActionEscalation.write(value.escalation, buf)
 
+class _UniffiFfiConverterSequenceTypeChildInvocation(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiFfiConverterTypeChildInvocation.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiFfiConverterTypeChildInvocation.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiFfiConverterTypeChildInvocation.read(buf) for i in range(count)
+        ]
+
+@dataclass
+class BatchActionsInput:
+    def __init__(self, *, actions:typing.List[ChildInvocation], session:typing.Optional[str]):
+        self.actions = actions
+        self.session = session
+
+
+
+
+    def __str__(self):
+        return "BatchActionsInput(actions={}, session={})".format(self.actions, self.session)
+    def __eq__(self, other):
+        if self.actions != other.actions:
+            return False
+        if self.session != other.session:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeBatchActionsInput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return BatchActionsInput(
+            actions=_UniffiFfiConverterSequenceTypeChildInvocation.read(buf),
+            session=_UniffiFfiConverterOptionalString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterSequenceTypeChildInvocation.check_lower(value.actions)
+        _UniffiFfiConverterOptionalString.check_lower(value.session)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterSequenceTypeChildInvocation.write(value.actions, buf)
+        _UniffiFfiConverterOptionalString.write(value.session, buf)
+
+class _UniffiFfiConverterSequenceTypeCompositeChildOutput(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiFfiConverterTypeCompositeChildOutput.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiFfiConverterTypeCompositeChildOutput.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiFfiConverterTypeCompositeChildOutput.read(buf) for i in range(count)
+        ]
+
+@dataclass
+class BatchActionsOutput:
+    def __init__(self, *, requested:int, completed:int, failed_index:typing.Optional[int], children:typing.List[CompositeChildOutput], elapsed_ms:int, rollback:bool):
+        self.requested = requested
+        self.completed = completed
+        self.failed_index = failed_index
+        self.children = children
+        self.elapsed_ms = elapsed_ms
+        self.rollback = rollback
+
+
+
+
+    def __str__(self):
+        return "BatchActionsOutput(requested={}, completed={}, failed_index={}, children={}, elapsed_ms={}, rollback={})".format(self.requested, self.completed, self.failed_index, self.children, self.elapsed_ms, self.rollback)
+    def __eq__(self, other):
+        if self.requested != other.requested:
+            return False
+        if self.completed != other.completed:
+            return False
+        if self.failed_index != other.failed_index:
+            return False
+        if self.children != other.children:
+            return False
+        if self.elapsed_ms != other.elapsed_ms:
+            return False
+        if self.rollback != other.rollback:
+            return False
+        return True
+
+class _UniffiFfiConverterTypeBatchActionsOutput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return BatchActionsOutput(
+            requested=_UniffiFfiConverterUInt64.read(buf),
+            completed=_UniffiFfiConverterUInt64.read(buf),
+            failed_index=_UniffiFfiConverterOptionalUInt64.read(buf),
+            children=_UniffiFfiConverterSequenceTypeCompositeChildOutput.read(buf),
+            elapsed_ms=_UniffiFfiConverterUInt64.read(buf),
+            rollback=_UniffiFfiConverterBoolean.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiFfiConverterUInt64.check_lower(value.requested)
+        _UniffiFfiConverterUInt64.check_lower(value.completed)
+        _UniffiFfiConverterOptionalUInt64.check_lower(value.failed_index)
+        _UniffiFfiConverterSequenceTypeCompositeChildOutput.check_lower(value.children)
+        _UniffiFfiConverterUInt64.check_lower(value.elapsed_ms)
+        _UniffiFfiConverterBoolean.check_lower(value.rollback)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiFfiConverterUInt64.write(value.requested, buf)
+        _UniffiFfiConverterUInt64.write(value.completed, buf)
+        _UniffiFfiConverterOptionalUInt64.write(value.failed_index, buf)
+        _UniffiFfiConverterSequenceTypeCompositeChildOutput.write(value.children, buf)
+        _UniffiFfiConverterUInt64.write(value.elapsed_ms, buf)
+        _UniffiFfiConverterBoolean.write(value.rollback, buf)
+
 class _UniffiFfiConverterFloat64(_UniffiConverterPrimitiveFloat):
     @staticmethod
     def read(buf):
@@ -1485,51 +2020,6 @@ class _UniffiFfiConverterTypeBoundsExpectation(_UniffiConverterRustBuffer):
         _UniffiFfiConverterFloat64.write(value.width, buf)
         _UniffiFfiConverterFloat64.write(value.height, buf)
         _UniffiFfiConverterOptionalFloat64.write(value.tolerance_px, buf)
-
-class _UniffiFfiConverterUInt64(_UniffiConverterPrimitiveInt):
-    CLASS_NAME = "u64"
-    VALUE_MIN = 0
-    VALUE_MAX = 2**64
-
-    @staticmethod
-    def read(buf):
-        return buf.read_u64()
-
-    @staticmethod
-    def write(value, buf):
-        buf.write_u64(value)
-
-class _UniffiFfiConverterString:
-    @staticmethod
-    def check_lower(value):
-        if not isinstance(value, str):
-            raise TypeError("argument must be str, not {}".format(type(value).__name__))
-        return value
-
-    @staticmethod
-    def read(buf):
-        size = buf.read_i32()
-        if size < 0:
-            raise InternalError("Unexpected negative string length")
-        utf8_bytes = buf.read(size)
-        return utf8_bytes.decode("utf-8")
-
-    @staticmethod
-    def write(value, buf):
-        utf8_bytes = value.encode("utf-8")
-        buf.write_i32(len(utf8_bytes))
-        buf.write(utf8_bytes)
-
-    @staticmethod
-    def lift(buf):
-        with buf.consume_with_stream() as stream:
-            return stream.read(stream.remaining()).decode("utf-8")
-
-    @staticmethod
-    def lower(value):
-        with _UniffiRustBuffer.alloc_with_builder() as builder:
-            builder.write(value.encode("utf-8"))
-            return builder.finalize()
 
 
 
@@ -1744,31 +2234,6 @@ class _UniffiFfiConverterOptionalTypeDesktopScope(_UniffiConverterRustBuffer):
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
-class _UniffiFfiConverterOptionalString(_UniffiConverterRustBuffer):
-    @classmethod
-    def check_lower(cls, value):
-        if value is not None:
-            _UniffiFfiConverterString.check_lower(value)
-
-    @classmethod
-    def write(cls, value, buf):
-        if value is None:
-            buf.write_u8(0)
-            return
-
-        buf.write_u8(1)
-        _UniffiFfiConverterString.write(value, buf)
-
-    @classmethod
-    def read(cls, buf):
-        flag = buf.read_u8()
-        if flag == 0:
-            return None
-        elif flag == 1:
-            return _UniffiFfiConverterString.read(buf)
-        else:
-            raise InternalError("Unexpected flag byte for optional type")
-
 
 
 
@@ -1907,27 +2372,6 @@ class _UniffiFfiConverterTypeClickInput(_UniffiConverterRustBuffer):
         _UniffiFfiConverterOptionalString.write(value.session, buf)
         _UniffiFfiConverterOptionalTypeClickButton.write(value.button, buf)
         _UniffiFfiConverterOptionalUInt32.write(value.count, buf)
-
-class _UniffiFfiConverterBoolean:
-    @classmethod
-    def check_lower(cls, value):
-        return not not value
-
-    @classmethod
-    def lower(cls, value):
-        return 1 if value else 0
-
-    @staticmethod
-    def lift(value):
-        return value != 0
-
-    @classmethod
-    def read(cls, buf):
-        return cls.lift(buf.read_u8())
-
-    @classmethod
-    def write(cls, value, buf):
-        buf.write_u8(value)
 
 @dataclass
 class ClipboardReadInput:
@@ -2575,31 +3019,6 @@ class _UniffiFfiConverterTypeCursorVisualOutput(_UniffiConverterRustBuffer):
         _UniffiFfiConverterString.write(value.phase, buf)
         _UniffiFfiConverterUInt64.write(value.frame, buf)
         _UniffiFfiConverterUInt64.write(value.preempted_count, buf)
-
-class _UniffiFfiConverterOptionalUInt64(_UniffiConverterRustBuffer):
-    @classmethod
-    def check_lower(cls, value):
-        if value is not None:
-            _UniffiFfiConverterUInt64.check_lower(value)
-
-    @classmethod
-    def write(cls, value, buf):
-        if value is None:
-            buf.write_u8(0)
-            return
-
-        buf.write_u8(1)
-        _UniffiFfiConverterUInt64.write(value, buf)
-
-    @classmethod
-    def read(cls, buf):
-        flag = buf.read_u8()
-        if flag == 0:
-            return None
-        elif flag == 1:
-            return _UniffiFfiConverterUInt64.read(buf)
-        else:
-            raise InternalError("Unexpected flag byte for optional type")
 
 class _UniffiFfiConverterOptionalSequenceString(_UniffiConverterRustBuffer):
     @classmethod
@@ -5066,19 +5485,6 @@ class _UniffiFfiConverterTypeTypeTextInput(_UniffiConverterRustBuffer):
         _UniffiFfiConverterOptionalTypeDesktopScope.write(value.scope, buf)
         _UniffiFfiConverterOptionalString.write(value.session, buf)
 
-class _UniffiFfiConverterInt64(_UniffiConverterPrimitiveInt):
-    CLASS_NAME = "i64"
-    VALUE_MIN = -2**63
-    VALUE_MAX = 2**63
-
-    @staticmethod
-    def read(buf):
-        return buf.read_i64()
-
-    @staticmethod
-    def write(value, buf):
-        buf.write_i64(value)
-
 class _UniffiFfiConverterSequenceTypeStatePredicate(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -5330,10 +5736,16 @@ __all__ = [
     "CaptureScope",
     "EffectiveScope",
     "Platform",
+    "ChildInvocation",
+    "ActAndObserveInput",
+    "CompositeChildOutput",
+    "ActAndObserveOutput",
     "ActionDelivery",
     "ActionEscalation",
     "ActionEvidence",
     "ActionResult",
+    "BatchActionsInput",
+    "BatchActionsOutput",
     "BoundsExpectation",
     "ClickInput",
     "ClipboardReadInput",

@@ -19,6 +19,270 @@ const uniffiIsDebug =
 
 // Public interface members begin here.
 
+const stringConverter = (() => {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    return {
+        stringToBytes: (s: string) => encoder.encode(s),
+        bytesToString: (ab: UniffiByteArray) => decoder.decode(ab),
+        stringByteLength: (s: string) => encoder.encode(s).byteLength,
+        writeStringIntoBuffer: (s: string, buf: any, offset: number): number => {
+            const view = new Uint8Array(
+                buf.arrayBuffer,
+                offset,
+                buf.arrayBuffer.byteLength - offset,
+            );
+            return encoder.encodeInto(s, view).written;
+        },
+        readStringFromBuffer: (buf: any, offset: number, length: number): string =>
+            decoder.decode(new Uint8Array(buf.arrayBuffer, offset, length)),
+    };
+})();
+const FfiConverterString = uniffiCreateFfiConverterString(stringConverter);
+
+/**
+ * One registry child call. Language bindings carry `arguments_json` as a
+ * string, while serde exposes the canonical wire field as an object named
+ * `arguments`.
+ */
+export type ChildInvocation = {
+    tool: string,
+    argumentsJson: string
+}
+
+/**
+ * Generated factory for {@link ChildInvocation} record objects.
+ */
+export const ChildInvocation = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<ChildInvocation, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<ChildInvocation>,
+    });
+})();
+
+const FfiConverterTypeChildInvocation = (() => {
+    type TypeName = ChildInvocation;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                tool: FfiConverterString.read(from),
+                argumentsJson: FfiConverterString.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterString.write(value.tool, into);
+            FfiConverterString.write(value.argumentsJson, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterString.allocationSize(value.tool) +
+             FfiConverterString.allocationSize(value.argumentsJson);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
+export type ActAndObserveInput = {
+    action: ChildInvocation,
+    pid: bigint,
+    windowId: bigint,
+    screenshotOutFile: string,
+    session?: string,
+    /**
+     * Default 500; the runtime clamps this to 1..5000 milliseconds.
+     */
+    timeoutMs?: bigint,
+    /**
+     * Default 16; the runtime clamps this to 1..250 milliseconds.
+     */
+    pollIntervalMs?: bigint
+}
+
+/**
+ * Generated factory for {@link ActAndObserveInput} record objects.
+ */
+export const ActAndObserveInput = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<ActAndObserveInput, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<ActAndObserveInput>,
+    });
+})();
+
+const FfiConverterTypeActAndObserveInput = (() => {
+    type TypeName = ActAndObserveInput;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                action: FfiConverterTypeChildInvocation.read(from),
+                pid: FfiConverterInt64.read(from),
+                windowId: FfiConverterUInt64.read(from),
+                screenshotOutFile: FfiConverterString.read(from),
+                session: FfiConverterOptionalString.read(from),
+                timeoutMs: FfiConverterOptionalInt64.read(from),
+                pollIntervalMs: FfiConverterOptionalInt64.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterTypeChildInvocation.write(value.action, into);
+            FfiConverterInt64.write(value.pid, into);
+            FfiConverterUInt64.write(value.windowId, into);
+            FfiConverterString.write(value.screenshotOutFile, into);
+            FfiConverterOptionalString.write(value.session, into);
+            FfiConverterOptionalInt64.write(value.timeoutMs, into);
+            FfiConverterOptionalInt64.write(value.pollIntervalMs, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterTypeChildInvocation.allocationSize(value.action) +
+             FfiConverterInt64.allocationSize(value.pid) +
+             FfiConverterUInt64.allocationSize(value.windowId) +
+             FfiConverterString.allocationSize(value.screenshotOutFile) +
+             FfiConverterOptionalString.allocationSize(value.session) +
+             FfiConverterOptionalInt64.allocationSize(value.timeoutMs) +
+             FfiConverterOptionalInt64.allocationSize(value.pollIntervalMs);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
+export type CompositeChildOutput = {
+    tool: string,
+    success: boolean,
+    elapsedMs: bigint,
+    index?: bigint,
+    effect?: string,
+    errorCode?: string
+}
+
+/**
+ * Generated factory for {@link CompositeChildOutput} record objects.
+ */
+export const CompositeChildOutput = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<CompositeChildOutput, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<CompositeChildOutput>,
+    });
+})();
+
+const FfiConverterTypeCompositeChildOutput = (() => {
+    type TypeName = CompositeChildOutput;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                tool: FfiConverterString.read(from),
+                success: FfiConverterBool.read(from),
+                elapsedMs: FfiConverterUInt64.read(from),
+                index: FfiConverterOptionalUInt64.read(from),
+                effect: FfiConverterOptionalString.read(from),
+                errorCode: FfiConverterOptionalString.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterString.write(value.tool, into);
+            FfiConverterBool.write(value.success, into);
+            FfiConverterUInt64.write(value.elapsedMs, into);
+            FfiConverterOptionalUInt64.write(value.index, into);
+            FfiConverterOptionalString.write(value.effect, into);
+            FfiConverterOptionalString.write(value.errorCode, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterString.allocationSize(value.tool) +
+             FfiConverterBool.allocationSize(value.success) +
+             FfiConverterUInt64.allocationSize(value.elapsedMs) +
+             FfiConverterOptionalUInt64.allocationSize(value.index) +
+             FfiConverterOptionalString.allocationSize(value.effect) +
+             FfiConverterOptionalString.allocationSize(value.errorCode);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
+export type ActAndObserveOutput = {
+    changed: boolean,
+    timedOut: boolean,
+    polls: bigint,
+    child: CompositeChildOutput,
+    finalScreenshotPath: string,
+    actionElapsedMs: bigint,
+    observeElapsedMs: bigint,
+    totalElapsedMs: bigint
+}
+
+/**
+ * Generated factory for {@link ActAndObserveOutput} record objects.
+ */
+export const ActAndObserveOutput = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<ActAndObserveOutput, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<ActAndObserveOutput>,
+    });
+})();
+
+const FfiConverterTypeActAndObserveOutput = (() => {
+    type TypeName = ActAndObserveOutput;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                changed: FfiConverterBool.read(from),
+                timedOut: FfiConverterBool.read(from),
+                polls: FfiConverterUInt64.read(from),
+                child: FfiConverterTypeCompositeChildOutput.read(from),
+                finalScreenshotPath: FfiConverterString.read(from),
+                actionElapsedMs: FfiConverterUInt64.read(from),
+                observeElapsedMs: FfiConverterUInt64.read(from),
+                totalElapsedMs: FfiConverterUInt64.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterBool.write(value.changed, into);
+            FfiConverterBool.write(value.timedOut, into);
+            FfiConverterUInt64.write(value.polls, into);
+            FfiConverterTypeCompositeChildOutput.write(value.child, into);
+            FfiConverterString.write(value.finalScreenshotPath, into);
+            FfiConverterUInt64.write(value.actionElapsedMs, into);
+            FfiConverterUInt64.write(value.observeElapsedMs, into);
+            FfiConverterUInt64.write(value.totalElapsedMs, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterBool.allocationSize(value.changed) +
+             FfiConverterBool.allocationSize(value.timedOut) +
+             FfiConverterUInt64.allocationSize(value.polls) +
+             FfiConverterTypeCompositeChildOutput.allocationSize(value.child) +
+             FfiConverterString.allocationSize(value.finalScreenshotPath) +
+             FfiConverterUInt64.allocationSize(value.actionElapsedMs) +
+             FfiConverterUInt64.allocationSize(value.observeElapsedMs) +
+             FfiConverterUInt64.allocationSize(value.totalElapsedMs);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
 export enum ActionDeliveryMode {
     Background,
     Foreground,
@@ -415,6 +679,108 @@ const FfiConverterTypeActionResult = (() => {
     return new FFIConverter();
 })();
 
+export type BatchActionsInput = {
+    actions: Array<ChildInvocation>,
+    session?: string
+}
+
+/**
+ * Generated factory for {@link BatchActionsInput} record objects.
+ */
+export const BatchActionsInput = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<BatchActionsInput, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<BatchActionsInput>,
+    });
+})();
+
+const FfiConverterTypeBatchActionsInput = (() => {
+    type TypeName = BatchActionsInput;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                actions: FfiConverterSequenceTypeChildInvocation.read(from),
+                session: FfiConverterOptionalString.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterSequenceTypeChildInvocation.write(value.actions, into);
+            FfiConverterOptionalString.write(value.session, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterSequenceTypeChildInvocation.allocationSize(value.actions) +
+             FfiConverterOptionalString.allocationSize(value.session);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
+export type BatchActionsOutput = {
+    requested: bigint,
+    completed: bigint,
+    failedIndex?: bigint,
+    children: Array<CompositeChildOutput>,
+    elapsedMs: bigint,
+    rollback: boolean
+}
+
+/**
+ * Generated factory for {@link BatchActionsOutput} record objects.
+ */
+export const BatchActionsOutput = (() => {
+    const defaults = () => ({
+    });
+    const create = (() => {
+        return uniffiCreateRecord<BatchActionsOutput, ReturnType<typeof defaults>>(defaults);
+    })();
+    return Object.freeze({
+        create,
+        new: create,
+        defaults: () => Object.freeze(defaults()) as Partial<BatchActionsOutput>,
+    });
+})();
+
+const FfiConverterTypeBatchActionsOutput = (() => {
+    type TypeName = BatchActionsOutput;
+    class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+        read(from: RustBuffer): TypeName {
+            return {
+                requested: FfiConverterUInt64.read(from),
+                completed: FfiConverterUInt64.read(from),
+                failedIndex: FfiConverterOptionalUInt64.read(from),
+                children: FfiConverterSequenceTypeCompositeChildOutput.read(from),
+                elapsedMs: FfiConverterUInt64.read(from),
+                rollback: FfiConverterBool.read(from)
+            };
+        }
+        write(value: TypeName, into: RustBuffer): void {
+            FfiConverterUInt64.write(value.requested, into);
+            FfiConverterUInt64.write(value.completed, into);
+            FfiConverterOptionalUInt64.write(value.failedIndex, into);
+            FfiConverterSequenceTypeCompositeChildOutput.write(value.children, into);
+            FfiConverterUInt64.write(value.elapsedMs, into);
+            FfiConverterBool.write(value.rollback, into);
+        }
+        allocationSize(value: TypeName): number {
+            return FfiConverterUInt64.allocationSize(value.requested) +
+             FfiConverterUInt64.allocationSize(value.completed) +
+             FfiConverterOptionalUInt64.allocationSize(value.failedIndex) +
+             FfiConverterSequenceTypeCompositeChildOutput.allocationSize(value.children) +
+             FfiConverterUInt64.allocationSize(value.elapsedMs) +
+             FfiConverterBool.allocationSize(value.rollback);
+
+        }
+    };
+    return new FFIConverter();
+})();
+
 export type BoundsExpectation = {
     x: number,
     y: number,
@@ -469,27 +835,6 @@ const FfiConverterTypeBoundsExpectation = (() => {
     };
     return new FFIConverter();
 })();
-
-const stringConverter = (() => {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-    return {
-        stringToBytes: (s: string) => encoder.encode(s),
-        bytesToString: (ab: UniffiByteArray) => decoder.decode(ab),
-        stringByteLength: (s: string) => encoder.encode(s).byteLength,
-        writeStringIntoBuffer: (s: string, buf: any, offset: number): number => {
-            const view = new Uint8Array(
-                buf.arrayBuffer,
-                offset,
-                buf.arrayBuffer.byteLength - offset,
-            );
-            return encoder.encodeInto(s, view).written;
-        },
-        readStringFromBuffer: (buf: any, offset: number, length: number): string =>
-            decoder.decode(new Uint8Array(buf.arrayBuffer, offset, length)),
-    };
-})();
-const FfiConverterString = uniffiCreateFfiConverterString(stringConverter);
 
 
 // Enum: ActionTarget
@@ -3756,6 +4101,15 @@ const FfiConverterTypePlatform = (() => {
     return new FFIConverter();
 })();
 
+// FfiConverter for string | undefined
+const FfiConverterOptionalString = new FfiConverterOptional(FfiConverterString);
+
+// FfiConverter for bigint | undefined
+const FfiConverterOptionalInt64 = new FfiConverterOptional(FfiConverterInt64);
+
+// FfiConverter for bigint | undefined
+const FfiConverterOptionalUInt64 = new FfiConverterOptional(FfiConverterUInt64);
+
 // FfiConverter for number | undefined
 const FfiConverterOptionalUInt32 = new FfiConverterOptional(FfiConverterUInt32);
 
@@ -3771,6 +4125,12 @@ const FfiConverterOptionalSequenceTypeActionEvidence = new FfiConverterOptional(
 // FfiConverter for ActionEscalation | undefined
 const FfiConverterOptionalTypeActionEscalation = new FfiConverterOptional(FfiConverterTypeActionEscalation);
 
+// FfiConverter for Array<ChildInvocation>
+const FfiConverterSequenceTypeChildInvocation = new FfiConverterArray(FfiConverterTypeChildInvocation);
+
+// FfiConverter for Array<CompositeChildOutput>
+const FfiConverterSequenceTypeCompositeChildOutput = new FfiConverterArray(FfiConverterTypeCompositeChildOutput);
+
 // FfiConverter for number | undefined
 const FfiConverterOptionalFloat64 = new FfiConverterOptional(FfiConverterFloat64);
 
@@ -3780,17 +4140,11 @@ const FfiConverterOptionalTypeActionTarget = new FfiConverterOptional(FfiConvert
 // FfiConverter for DesktopScope | undefined
 const FfiConverterOptionalTypeDesktopScope = new FfiConverterOptional(FfiConverterTypeDesktopScope);
 
-// FfiConverter for string | undefined
-const FfiConverterOptionalString = new FfiConverterOptional(FfiConverterString);
-
 // FfiConverter for ClickButton | undefined
 const FfiConverterOptionalTypeClickButton = new FfiConverterOptional(FfiConverterTypeClickButton);
 
 // FfiConverter for Array<string>
 const FfiConverterSequenceString = new FfiConverterArray(FfiConverterString);
-
-// FfiConverter for bigint | undefined
-const FfiConverterOptionalUInt64 = new FfiConverterOptional(FfiConverterUInt64);
 
 // FfiConverter for Array<string> | undefined
 const FfiConverterOptionalSequenceString = new FfiConverterOptional(FfiConverterSequenceString);
@@ -3859,6 +4213,8 @@ function uniffiEnsureInitialized() {
 export default Object.freeze({
   initialize: uniffiEnsureInitialized,
   converters: {
+    FfiConverterTypeActAndObserveInput,
+    FfiConverterTypeActAndObserveOutput,
     FfiConverterTypeActionDelivery,
     FfiConverterTypeActionDeliveryMode,
     FfiConverterTypeActionEffect,
@@ -3870,14 +4226,18 @@ export default Object.freeze({
     FfiConverterTypeActionResult,
     FfiConverterTypeActionRoute,
     FfiConverterTypeActionTarget,
+    FfiConverterTypeBatchActionsInput,
+    FfiConverterTypeBatchActionsOutput,
     FfiConverterTypeBoundsExpectation,
     FfiConverterTypeCaptureScope,
+    FfiConverterTypeChildInvocation,
     FfiConverterTypeClickButton,
     FfiConverterTypeClickInput,
     FfiConverterTypeClipboardReadInput,
     FfiConverterTypeClipboardReadOutput,
     FfiConverterTypeClipboardWriteInput,
     FfiConverterTypeClipboardWriteOutput,
+    FfiConverterTypeCompositeChildOutput,
     FfiConverterTypeCursorAction,
     FfiConverterTypeCursorMotionOutput,
     FfiConverterTypeCursorPointOutput,

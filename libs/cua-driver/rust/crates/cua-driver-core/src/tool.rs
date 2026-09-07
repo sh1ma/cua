@@ -136,6 +136,13 @@ pub struct ToolDef {
 }
 
 impl ToolDef {
+    /// Return the exact input schema advertised to runtime clients.
+    /// Composite preflight uses this same projection so child validation
+    /// cannot drift from `tools/list`.
+    pub fn runtime_input_schema(&self) -> Value {
+        advertised_runtime_input_schema(&self.name, &self.input_schema)
+    }
+
     /// Build the runtime MCP definition from a canonical client contract.
     /// Only migrated tools use this bridge; platform-specific tools continue
     /// to own their live schemas until they can pass parity checks.
@@ -163,7 +170,7 @@ impl ToolDef {
         //
         // Published SDK tools resolve capabilities from their typed Rust
         // contract. The legacy map remains only for runtime-only tools.
-        let input_schema = advertised_runtime_input_schema(&self.name, &self.input_schema);
+        let input_schema = self.runtime_input_schema();
         let caps = advertised_capabilities_for(&self.name, &input_schema);
         let risk = crate::authorization::risk_metadata_json(&self.name);
         let mut entry = serde_json::json!({
@@ -356,7 +363,6 @@ pub fn default_capabilities_for(tool_name: &str) -> Vec<String> {
             "screen.capture",
             "screen.capture.window",
         ],
-
         // ── apps / windows ───────────────────────────────────────────
         "launch_app" => &["app.launch"],
         "list_apps" => &["app.list"],
@@ -836,6 +842,17 @@ impl ToolRegistry {
             self.replay_registry.clone(),
         )));
         self.register(Box::new(crate::recording_tools::InstallFfmpegTool));
+    }
+
+    /// Register the bounded desktop composites after platform action tools.
+    pub fn register_desktop_composite_tools(&mut self, get_window_state: Arc<dyn Tool>) {
+        self.register(Box::new(crate::desktop_composite::ActAndObserveTool::new(
+            self.replay_registry.clone(),
+            get_window_state,
+        )));
+        self.register(Box::new(crate::desktop_composite::BatchActionsTool::new(
+            self.replay_registry.clone(),
+        )));
     }
 
     /// Install the encrypted history hook and its two permission-gated,
@@ -1502,7 +1519,12 @@ impl ToolRegistry {
         let should_record = !tool.def().read_only
             && !matches!(
                 resolved_name,
-                "start_recording" | "stop_recording" | "get_recording_state" | "replay_trajectory"
+                "start_recording"
+                    | "stop_recording"
+                    | "get_recording_state"
+                    | "replay_trajectory"
+                    | "act_and_observe"
+                    | "batch_actions"
             );
         let private_consent_turn = is_existing_profile_prepare(resolved_name, &args);
         let _desktop_action = if requires_desktop_coordination(
@@ -2074,7 +2096,7 @@ impl ToolRegistry {
                     format!("Allow Cua to read this exact local {content_kind} into the clipboard"),
                 )
             }
-            "get_desktop_state" | "get_window_state" => {
+            "get_desktop_state" | "get_window_state" | "act_and_observe" => {
                 let output =
                     canonical_proposed_path(required_path_arg(args, "screenshot_out_file")?)?;
                 args["screenshot_out_file"] = Value::String(output.clone());

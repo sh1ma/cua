@@ -1015,6 +1015,9 @@ pub fn register_all(
         registry.protected_resource_ownership(),
     );
     cua_driver_core::browser::register_browser_tools(&browser_engine, registry);
+    registry.register_desktop_composite_tools(Arc::new(get_window_state::GetWindowStateTool::new(
+        state.clone(),
+    )));
     // Recording / replay + session-lifecycle tools are platform-independent.
     registry.register_recording_tools();
     registry.register_session_tools();

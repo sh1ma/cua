@@ -6,13 +6,14 @@
 //! MCP and daemon transports are downstream adapters rather than peer contracts.
 
 use cua_driver_contract::{
-    ActionResult, ClickInput, ClipboardReadInput, ClipboardWriteInput, DragInput, EndSessionInput,
-    EndSessionOutput, EscalateSessionInput, GetAgentCursorStateInput, GetCursorPositionInput,
-    GetDesktopStateInput, GetScreenSizeInput, GetSessionInput, GetSessionStateInput, HotkeyInput,
-    InvokeMenuInput, ListSessionsInput, ListSessionsOutput, MoveCursorInput, PressKeyInput,
-    ScrollInput, SessionOutput, SessionStateOutput, SetAgentCursorEnabledInput,
-    SetAgentCursorMotionInput, SetAgentCursorThemeInput, SetWindowFrameInput, StartSessionInput,
-    StartSessionOutput, ToolInput, TypeTextInput, VerifyStateInput, VerifyStateOutput,
+    ActAndObserveInput, ActionResult, BatchActionsInput, ClickInput, ClipboardReadInput,
+    ClipboardWriteInput, DragInput, EndSessionInput, EndSessionOutput, EscalateSessionInput,
+    GetAgentCursorStateInput, GetCursorPositionInput, GetDesktopStateInput, GetScreenSizeInput,
+    GetSessionInput, GetSessionStateInput, HotkeyInput, InvokeMenuInput, ListSessionsInput,
+    ListSessionsOutput, MoveCursorInput, PressKeyInput, ScrollInput, SessionOutput,
+    SessionStateOutput, SetAgentCursorEnabledInput, SetAgentCursorMotionInput,
+    SetAgentCursorThemeInput, SetWindowFrameInput, StartSessionInput, StartSessionOutput,
+    ToolInput, TypeTextInput, VerifyStateInput, VerifyStateOutput,
 };
 use cua_driver_core::daemon::{
     is_daemon_listening, request_daemon_metadata, send_request, socket_path_for_namespace,
@@ -632,6 +633,8 @@ macro_rules! desktop_tool_methods {
             get_screen_size: GetScreenSizeInput,
             get_cursor_position: GetCursorPositionInput,
             verify_state: VerifyStateInput,
+            act_and_observe: ActAndObserveInput,
+            batch_actions: BatchActionsInput,
             move_cursor: MoveCursorInput,
             set_window_frame: SetWindowFrameInput,
             invoke_menu: InvokeMenuInput,

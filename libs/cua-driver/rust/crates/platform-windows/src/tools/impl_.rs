@@ -1223,11 +1223,11 @@ impl Tool for GetWindowStateTool {
                 ACTION time: an element ax action (element_index/element_token → \
                 accessibility rung) or an element px action (x,y → pixel rung off this \
                 screenshot). capture_mode is deprecated and ignored.\n\n\
-                The mirror image: pass `include_accessibility_tree:false` to SKIP the \
+                The mirror image: pass `include_tree:false` to SKIP the \
                 UIA walk entirely and return just the screenshot plus window metadata \
                 (window_bounds, app_name, window_title) — the capture-only path for a \
                 live window preview / picture-in-picture. Setting BOTH \
-                `include_accessibility_tree:false` and `include_screenshot:false` is an \
+                `include_tree:false` and `include_screenshot:false` is an \
                 error. Optional `max_dimension` caps the returned screenshot's long edge \
                 in pixels for a cheap thumbnail.\n\n\
                 Uses `IUIAutomationCacheRequest` to batch-fetch all element properties in a \
@@ -1252,9 +1252,10 @@ impl Tool for GetWindowStateTool {
                 "pid":{"type":"integer","description":"Process ID from `list_apps`."},
                 "window_id":{"type":"integer","description":"HWND of the target window. Must belong to `pid`. Enumerate via `list_windows` or read from `launch_app`'s `windows` array."},
                 "capture_mode": cua_driver_core::capture_mode::capture_mode_schema(),
-                "include_accessibility_tree":{"type":"boolean","description":"Default true — walk the UIA tree and return `elements` + `tree_markdown` alongside the screenshot. Set false to SKIP the UIA walk entirely and return just the screenshot plus window metadata (window_bounds, app_name, window_title) — the capture-only path for a live window preview / picture-in-picture. Mirrors include_screenshot. Setting BOTH include_accessibility_tree:false AND include_screenshot:false is an error (nothing to return)."},
+                "include_tree": cua_driver_core::window_state_options::include_tree_schema(),
+                "include_accessibility_tree": cua_driver_core::window_state_options::legacy_include_accessibility_tree_schema(),
                 "include_screenshot":{"type":"boolean","description":"Default true — returns a grounding screenshot alongside the tree. Set false to skip the grab and return tree only (the cheap path for re-indexing before an element ax action)."},
-                "screenshot_out_file":{"type":"string","description":"When set, write the PNG to this file path instead of embedding base64 in the response. The structured output will contain `screenshot_file_path` instead."},
+                "screenshot_out_file":{"type":"string","minLength":1,"description":"When set, write the PNG to this file path instead of embedding base64 in the response. The structured output will contain `screenshot_file_path` instead."},
                 "query":{"type":"string","description":"Optional case-insensitive substring. Projects both tree_markdown and structured elements to matches plus ancestors while preserving original indices. Compare total_element_count with returned_element_count."},
                 "max_elements":{"type":"integer","minimum":1,"description":"Cap on the total number of UIA nodes walked. Truncates depth-first; markdown and structured elements truncate together. Omit for the default (5 000). Lower for Electron / large web apps that produce 10k+ element trees."},
                 "max_depth":{"type":"integer","minimum":1,"description":"Cap on the UIA-tree walk depth. Nodes whose rendered indent would exceed this are omitted. Omit for the default (25). Lower for deep menu / Electron trees."},
@@ -1278,6 +1279,11 @@ impl Tool for GetWindowStateTool {
                     "Missing required integer field window_id. Use `list_windows` to enumerate \
                  the target app's windows, or read `launch_app`'s `windows` array.",
                 ),
+            };
+        let selection =
+            match cua_driver_core::window_state_options::WindowStateSelection::from_args(&args) {
+                Ok(selection) => selection,
+                Err(error) => return error,
             };
         // Validate window belongs to pid — Swift's hard error.
         let windows_for_pid =
@@ -1337,7 +1343,9 @@ impl Tool for GetWindowStateTool {
         // We don't read the arg; it stays in the schema only so old callers don't
         // trip additionalProperties:false.
         let query = args.opt_str("query");
-        let screenshot_out_file = args.opt_str("screenshot_out_file");
+        let screenshot_out_file = args
+            .opt_str("screenshot_out_file")
+            .filter(|path| !path.is_empty());
         // Optional caps — when omitted, fall back to the walker's built-in
         // defaults (#22865). minimum:1 enforced in the schema, but defend
         // against 0 here too.
@@ -1359,7 +1367,6 @@ impl Tool for GetWindowStateTool {
         // `screenshot_out_file` still forces a capture to disk regardless. With
         // `screenshot_out_file` the bytes go to disk and the path is surfaced
         // instead of embedding base64; otherwise the base64 PNG is embedded.
-        let include_screenshot = args.get("include_screenshot").and_then(|v| v.as_bool());
         let observation_only = args
             .get("_observation_only")
             .and_then(|value| value.as_bool())
@@ -1367,18 +1374,8 @@ impl Tool for GetWindowStateTool {
         // `include_accessibility_tree` (default true) mirrors include_screenshot:
         // set false to SKIP the UIA walk and return just the screenshot + window
         // metadata (the capture-only / preview path).
-        let do_tree = args
-            .get("include_accessibility_tree")
-            .and_then(|v| v.as_bool())
-            != Some(false);
-        let do_shot = include_screenshot != Some(false) || screenshot_out_file.is_some();
-        if !do_tree && !do_shot {
-            return ToolResult::error(
-                "Nothing to return: both include_accessibility_tree:false and \
-                 include_screenshot:false. Set at least one to true, or pass \
-                 screenshot_out_file to force a capture.",
-            );
-        }
+        let do_tree = selection.include_tree;
+        let do_shot = selection.include_screenshot;
 
         let state = self.state.clone();
         let q = query.clone();
@@ -1457,7 +1454,11 @@ impl Tool for GetWindowStateTool {
         match result {
             Ok((tree_opt, screenshot_opt, screenshot_err)) => {
                 let mut content = Vec::new();
-                let mut structured = json!({ "window_id": hwnd, "pid": pid });
+                let mut structured = json!({
+                    "window_id": hwnd,
+                    "pid": pid,
+                    "tree_included": do_tree,
+                });
 
                 if let Some(tr) = tree_opt {
                     let is_msaa = tr.nodes.iter().any(|n| n.msaa_role.is_some());
@@ -1632,7 +1633,7 @@ impl Tool for GetWindowStateTool {
                     ),
                 );
 
-                // The capture-only path (include_accessibility_tree:false) leaves
+                // The capture-only path (include_tree:false) leaves
                 // `content` empty if the screenshot was also unavailable. Return a
                 // structured error rather than a "successful" response with no
                 // content parts (consistent with the tree+screenshot path, which
@@ -1640,7 +1641,7 @@ impl Tool for GetWindowStateTool {
                 if content.is_empty() {
                     return ToolResult::error(format!(
                         "No content produced for window_id {hwnd}: the accessibility tree was \
-                         skipped (include_accessibility_tree:false) and no screenshot was returned."
+                         skipped (include_tree:false) and no screenshot was returned."
                     ))
                     .with_structured(structured);
                 }
@@ -10052,6 +10053,9 @@ pub fn build_registry_with_provider(
         r.protected_resource_ownership(),
     );
     cua_driver_core::browser::register_browser_tools(&browser_engine, &mut r);
+    r.register_desktop_composite_tools(std::sync::Arc::new(GetWindowStateTool {
+        state: state.clone(),
+    }));
     r.register_recording_tools();
     r.register_session_tools();
     r

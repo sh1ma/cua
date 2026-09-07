@@ -58,6 +58,7 @@ pub mod consent;
 pub mod cursor_events;
 pub mod cursor_sampler;
 pub mod daemon;
+pub mod desktop_composite;
 pub mod element_cache;
 pub mod element_query;
 pub mod element_token;
@@ -88,6 +89,7 @@ pub mod tool_schema;
 pub mod video;
 pub mod video_ffmpeg;
 pub mod window_inspection;
+pub mod window_state_options;
 pub mod window_target;
 
 pub use cua_driver_contract::{CaptureScope, EscalationReason};

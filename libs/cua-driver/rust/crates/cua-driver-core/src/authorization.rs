@@ -231,6 +231,7 @@ const PRIVATE_OBSERVATION_OPERATIONS: &[&str] = &[
     "get_desktop_state",
     "get_accessibility_tree",
     "get_window_state",
+    "act_and_observe",
     "verify_state",
     "list_apps",
     "list_windows",
@@ -303,6 +304,7 @@ const FILE_TRANSFER_OPERATIONS: &[&str] = &[
     "browser_download",
     "get_desktop_state[with_file_output]",
     "get_window_state[with_file_output]",
+    "act_and_observe",
     "start_recording",
     "stop_recording",
     "replay_trajectory",
@@ -737,6 +739,7 @@ pub fn enforcement_adapters_for_call(
         "get_desktop_state"
             | "get_accessibility_tree"
             | "get_window_state"
+            | "act_and_observe"
             | "verify_state"
             | "list_apps"
             | "list_windows"
@@ -768,11 +771,13 @@ pub fn enforcement_adapters_for_call(
         add("clipboard");
     }
 
-    let writes_screenshot = matches!(tool, "get_desktop_state" | "get_window_state")
-        && args
-            .get("screenshot_out_file")
-            .and_then(Value::as_str)
-            .is_some_and(|path| !path.is_empty());
+    let writes_screenshot = matches!(
+        tool,
+        "get_desktop_state" | "get_window_state" | "act_and_observe"
+    ) && args
+        .get("screenshot_out_file")
+        .and_then(Value::as_str)
+        .is_some_and(|path| !path.is_empty());
     if matches!(
         tool,
         "browser_set_input_files"
@@ -897,7 +902,8 @@ pub fn advertised_risk_for(tool: &str) -> RiskAssessment {
         | "end_session"
         | "set_agent_cursor_enabled"
         | "set_agent_cursor_motion"
-        | "set_agent_cursor_theme" => RiskClass::R1,
+        | "set_agent_cursor_theme"
+        | "batch_actions" => RiskClass::R1,
 
         "clipboard_write" => RiskClass::R1,
 
@@ -927,6 +933,7 @@ pub fn advertised_risk_for(tool: &str) -> RiskAssessment {
         // External/file side effects or generic compound action surfaces.
         "get_desktop_state"
         | "get_window_state"
+        | "act_and_observe"
         | "kill_app"
         | "stop_recording"
         | "replay_trajectory"
@@ -1000,7 +1007,7 @@ pub fn classify_tool_call(tool: &str, args: &Value) -> RiskAssessment {
                 operation_sensitive: true,
             }
         }
-        "get_desktop_state" | "get_window_state" => RiskAssessment {
+        "get_desktop_state" | "get_window_state" | "act_and_observe" => RiskAssessment {
             class: if args
                 .get("screenshot_out_file")
                 .and_then(Value::as_str)

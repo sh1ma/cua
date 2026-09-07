@@ -66,6 +66,16 @@ The checked-observation slice is also shared by MCP and both generated SDKs:
 - `include_screenshot=true` adds final image content for a multimodal agent
   harness to interpret. Cua Driver does not OCR or assign task meaning to it.
 
+The bounded composition slice reduces action-loop round trips without adding a
+second authorization path:
+
+- `act_and_observe` executes one preflighted child once, then polls
+  screenshot-only window frames for an exact decoded-pixel change.
+- `batch_actions` preflights 1–32 children before dispatch, runs them in order,
+  and stops on the first error without claiming rollback.
+- Every child re-enters the canonical registry and its existing authorization
+  checks. Composite results omit child arguments and private capture paths.
+
 Session contracts are marked `canonical_runtime`: the same typed Rust input,
 output, and metadata declaration builds the live MCP tool. The preferred action
 target is a tagged union: `{kind:"window", pid, window_id}` or
@@ -99,7 +109,7 @@ Compatibility is tracked separately at each boundary:
 
 | Field | Current | Meaning |
 | --- | --- | --- |
-| `contract_version` | `0.7.0` | Generated manifest and typed SDK shape |
+| `contract_version` | `0.8.0` | Generated manifest and typed SDK shape |
 | `tools_list_schema_version` | `1` | cua-driver `tools/list` extension shape |
 | `capability_version` | `1` | Additive capability-token vocabulary |
 | `mcp_protocol_version` | `2025-06-18` | MCP initialization protocol served to agent runtimes |

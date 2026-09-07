@@ -303,6 +303,36 @@ fn bind_u64_argument(
     }
 }
 
+fn bind_window_target(
+    arguments: &mut Map<String, Value>,
+    pid: i64,
+    window_id: u64,
+) -> Result<(), ToolResult> {
+    match arguments.get("target") {
+        Some(target)
+            if target.get("kind").and_then(Value::as_str) == Some("window")
+                && target.get("pid").and_then(Value::as_i64) == Some(pid)
+                && target.get("window_id").and_then(Value::as_u64) == Some(window_id) =>
+        {
+            Ok(())
+        }
+        Some(_) => Err(ToolResult::error(
+            "child target must match the act_and_observe window target",
+        )
+        .with_structured(json!({
+            "code": "child_target_mismatch",
+            "field": "target",
+        }))),
+        None => {
+            arguments.insert(
+                "target".to_owned(),
+                json!({"kind": "window", "pid": pid, "window_id": window_id}),
+            );
+            Ok(())
+        }
+    }
+}
+
 fn prepare_child(
     registry: &ToolRegistry,
     raw: &Value,
@@ -346,7 +376,17 @@ fn prepare_child(
     };
 
     if let Some((pid, window_id)) = target {
-        if !schema_accepts(&definition, "pid") || !schema_accepts(&definition, "window_id") {
+        let accepts_flat_target =
+            schema_accepts(&definition, "pid") && schema_accepts(&definition, "window_id");
+        let accepts_typed_target = schema_accepts(&definition, "target");
+        if argument_object.contains_key("target") && accepts_typed_target {
+            bind_window_target(argument_object, pid, window_id)?;
+        } else if accepts_flat_target {
+            bind_i64_argument(argument_object, "pid", pid)?;
+            bind_u64_argument(argument_object, "window_id", window_id)?;
+        } else if accepts_typed_target {
+            bind_window_target(argument_object, pid, window_id)?;
+        } else {
             return Err(ToolResult::error(format!(
                 "child tool {tool} cannot prove the act_and_observe window target"
             ))
@@ -355,8 +395,6 @@ fn prepare_child(
                 "tool": tool,
             })));
         }
-        bind_i64_argument(argument_object, "pid", pid)?;
-        bind_u64_argument(argument_object, "window_id", window_id)?;
     }
     if schema_accepts(&definition, "session") && !argument_object.contains_key("session") {
         if let Some(session) = parent_session {
@@ -873,13 +911,11 @@ mod tests {
         let paths = Arc::new(Mutex::new(Vec::new()));
         let mut registry = ToolRegistry::new();
         registry.register(Box::new(probe(
-            "click",
+            "move_cursor",
             json!({
                 "type": "object",
-                "required": ["pid", "window_id", "x", "y"],
+                "required": ["x", "y"],
                 "properties": {
-                    "pid": {"type": "integer"},
-                    "window_id": {"type": "integer"},
                     "x": {"type": "number"},
                     "y": {"type": "number"}
                 },
@@ -901,7 +937,7 @@ mod tests {
                     "window_id": 7,
                     "screenshot_out_file": output,
                     "action": {
-                        "tool": "click",
+                        "tool": "move_cursor",
                         "arguments": {"x": 10, "y": 20}
                     }
                 }),
